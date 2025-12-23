@@ -8,6 +8,21 @@ on:
     branches:
       - main
 jobs:
+  output-job:
+    runs-on: ubuntu-latest
+    outputs:
+      job_message: ${{ steps.set-output.outputs.message }}
+    steps:
+      - name: Set Output
+        id: set-output
+        run: echo "message=Hello from job" >> $GITHUB_OUTPUT
+
+  input-job:
+    needs: output-job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use Output
+        run: echo "${{ needs.output-job.outputs.job_message }}"
   echo-job:
     runs-on: ubuntu-latest
     env:
@@ -60,3 +75,37 @@ jobs:
       - name: Use Environment Variable
         run: |
           echo "Value: $MY_VALUE"
+      - name: Set Step Output
+        id: step1
+        run: |
+          echo "message=Hello from step 1" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date)" >> $GITHUB_OUTPUT
+      - name: Use Step Output
+        run: |
+          echo "Message: ${{ steps.step1.outputs.message }}"
+          echo "Timestamp: ${{ steps.step1.outputs.timestamp }}"
+      - name: Create File
+        run: |
+          echo "Important data" > data.txt
+      
+      - name: Read File
+        run: |
+          cat data.txt
+          DATA=$(cat data.txt)
+          echo "Data: $DATA"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Make Changes
+        run: |
+          echo "New content" >> file.txt
+          git add file.txt
+          git commit -m "Update file from workflow"
+          git push
